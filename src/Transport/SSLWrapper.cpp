@@ -33,35 +33,16 @@ SSLWrapper::SSLWrapper()
 {
     SSL_library_init();
     SSL_load_error_strings();
-    #if OPENSSL_VERSION_NUMBER >= 0x30000000L && !defined(LIBRESSL_VERSION_NUMBER)
-    /*
-    * ERR_load_*(), ERR_func_error_string(), ERR_get_error_line(), ERR_get_error_line_data(), ERR_get_state()
-    * OpenSSL now loads error strings automatically so these functions are not needed.
-    * SEE FOR MORE:
-    *   https://www.openssl.org/docs/manmaster/man7/migration_guide.html
-    *
-    */
-    #else
-        ERR_load_BIO_strings();
-    #endif
+    ERR_load_BIO_strings();
     OpenSSL_add_all_algorithms();
 }
 
 SSLWrapper::~SSLWrapper()
 {
-    #if OPENSSL_VERSION_NUMBER >= 0x30000000L
-        EVP_default_properties_enable_fips(nullptr, 0);
-    #else
-        FIPS_mode_set(0);
-    #endif
-        ENGINE_cleanup();
-        CONF_modules_unload(1);
-        EVP_cleanup();
-        CRYPTO_cleanup_all_ex_data();
-    #if (OPENSSL_VERSION_NUMBER < 0x10100000L)
-        ERR_remove_state(0);
-    #endif
-    ERR_free_strings();
+    //FIPS_mode_set(0);
+    ENGINE_cleanup();
+    CONF_modules_unload(1);
+    EVP_cleanup();
 }
 
 X509* SSLWrapper::readCertificate(const std::string& certificate)
