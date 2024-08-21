@@ -1,5 +1,5 @@
 /*
-*  This file is part of aasdk library project.
+*  This file is part of the aasdk library project.
 *  Copyright (C) 2018 f1x.studio (Michal Szwaj)
 *
 *  aasdk is free software: you can redistribute it and/or modify
@@ -23,7 +23,6 @@
 #include <openssl/conf.h>
 #include <aasdk/Transport/SSLWrapper.hpp>
 
-
 namespace aasdk
 {
 namespace transport
@@ -33,34 +32,35 @@ SSLWrapper::SSLWrapper()
 {
     SSL_library_init();
     SSL_load_error_strings();
-    #if OPENSSL_VERSION_NUMBER >= 0x30000000L && !defined(LIBRESSL_VERSION_NUMBER)
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L && !defined(LIBRESSL_VERSION_NUMBER)
     /*
     * ERR_load_*(), ERR_func_error_string(), ERR_get_error_line(), ERR_get_error_line_data(), ERR_get_state()
     * OpenSSL now loads error strings automatically so these functions are not needed.
     * SEE FOR MORE:
     *   https://www.openssl.org/docs/manmaster/man7/migration_guide.html
-    *
     */
-    #else
-        ERR_load_BIO_strings();
-    #endif
+#else
+    ERR_load_BIO_strings();
+#endif
     OpenSSL_add_all_algorithms();
 }
 
 SSLWrapper::~SSLWrapper()
 {
-    #if OPENSSL_VERSION_NUMBER >= 0x30000000L
-        EVP_default_properties_enable_fips(nullptr, 0);
-    #else
-        FIPS_mode_set(0);
-    #endif
-        ENGINE_cleanup();
-        CONF_modules_unload(1);
-        EVP_cleanup();
-        CRYPTO_cleanup_all_ex_data();
-    #if (OPENSSL_VERSION_NUMBER < 0x10100000L)
-        ERR_remove_state(0);
-    #endif
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+    // OpenSSL 3.0 and later: ENGINE_cleanup is no longer needed or available.
+    EVP_default_properties_enable_fips(nullptr, 0); // Disable FIPS mode if needed
+#else
+    FIPS_mode_set(0);
+    ENGINE_cleanup(); // Only for OpenSSL versions prior to 3.0
+#endif
+    CONF_modules_unload(1);
+    EVP_cleanup();
+    CRYPTO_cleanup_all_ex_data();
+
+#if (OPENSSL_VERSION_NUMBER < 0x10100000L)
+    ERR_remove_state(0);
+#endif
     ERR_free_strings();
 }
 
@@ -76,7 +76,7 @@ X509* SSLWrapper::readCertificate(const std::string& certificate)
 EVP_PKEY* SSLWrapper::readPrivateKey(const std::string& privateKey)
 {
     auto bio = BIO_new_mem_buf(privateKey.c_str(), privateKey.size());
-    auto result = PEM_read_bio_PrivateKey (bio, nullptr, nullptr, nullptr);
+    auto result = PEM_read_bio_PrivateKey(bio, nullptr, nullptr, nullptr);
     BIO_free(bio);
 
     return result;
